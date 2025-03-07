@@ -1,0 +1,70 @@
+# .NET Core build artifacts
+bin/
+obj/
+out/
+
+# User-specific files
+.vscode/
+.idea/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Windows Installer - Windows Installer (Installer for Microsoft) [other extensions]
+*.pdb
+
+# Windows Installer - Temp Files
+*.tmp
+*.bak
+
+# .NET Core generated file
+project.lock.json
+project.fragment.lock.json
+
+# ASP.NET Core specific files
+wwwroot/
+appsettings.Development.json
+appsettings.Testing.json
+
+# User-specific files (Windows and macOS)
+*.user
+*.userosscache
+*.suo
+*.userprefs
+.idea/
+
+# NUGET
+*.nupkg
+*.snupkg
+.nuget/
+
+# JetBrains Rider
+.idea/
+
+# VS for Mac
+.vscode/
+
+# VSCode settings
+.vscode/
+
+# .NET Core tooling files
+.vs/
+
+# Azure specific files
+azure-pipelines.yml
+/BidManagement/.vs/BidManagement/DesignTimeBuild/.dtbcache.v2
+/BidManagement/.vs/BidManagement/v17/.suo
+/BidManagement/BidManagement/obj/BidManagement.csproj.nuget.dgspec.json
+/BidManagement/BidManagement/obj/BidManagement.csproj.nuget.g.props
+/BidManagement/BidManagement/obj/BidManagement.csproj.nuget.g.targets
+/BidManagement/BidManagement/obj/project.assets.json
+/BidManagement/BidManagement/obj/project.nuget.cache
+/BidManagement/BidManagement/obj/Debug/net8.0/BidManagement.AssemblyInfo.cs
+/BidManagement/BidManagement/obj/Debug/net8.0/BidManagement.AssemblyInfoInputs.cache
+/BidManagement/BidManagement/obj/Debug/net8.0/BidManagement.assets.cache
+/BidManagement/BidManagement/obj/Debug/net8.0/BidManagement.csproj.AssemblyReference.cache
+/BidManagement/BidManagement/obj/Debug/net8.0/BidManagement.GeneratedMSBuildEditorConfig.editorconfig
+/BidManagement/.vs/BidManagement/v17/DocumentLayout.json
