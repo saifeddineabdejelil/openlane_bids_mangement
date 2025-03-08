@@ -12,12 +12,13 @@ namespace BidManagement.Controllers
 
         private readonly ILogger<BidFlowController> _logger;
         private readonly IBidService _bidService;
+        private readonly IQueueService _queueService;
 
-        public BidFlowController(IBidService bidService, ILogger<BidFlowController> logger)
+        public BidFlowController(IBidService bidService, ILogger<BidFlowController> logger, IQueueService queueService)
         {
             _bidService = bidService;
-
             _logger = logger;
+            _queueService = queueService;
         }
 
         [HttpGet(Name = "receive")]
@@ -33,6 +34,9 @@ namespace BidManagement.Controllers
                 await _bidService.SaveBidAsync(bid);
 
                 _logger.LogInformation($"Bid  ( {bid.Id} ) saved successfully.");
+
+                _queueService.PublishBid(bid);
+
                 return Ok("Success reception");
             }
             catch (Exception ex)
