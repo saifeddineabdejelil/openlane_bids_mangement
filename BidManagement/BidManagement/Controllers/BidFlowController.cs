@@ -38,7 +38,7 @@ namespace BidManagement.Controllers
                 _queueService.PublishBid(bid);
                 _logger.LogInformation($"Bid  ( {bid.Id} ) pushed in queue successfully.");
 
-                return Ok("Success reception");
+                return Ok("Success reception of bid");
             }
             catch (Exception ex)
             {

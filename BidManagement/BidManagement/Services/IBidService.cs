@@ -6,8 +6,7 @@ namespace BidManagement.Services
     {
 
         Task SaveBidAsync(Bid bid);
-
-       Task SaveBidDecisionAsync(Decision decision);
+        Task SaveBidDecisionAsync(Decision decision);
         Task<Decision> GetDecisionByClient(string clientEmail);
 
 

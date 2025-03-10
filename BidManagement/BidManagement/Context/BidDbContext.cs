@@ -4,10 +4,10 @@
     using Microsoft.EntityFrameworkCore;
     public class BidDbContext : DbContext
     {
-        public DbSet<Bid> Bids { get; set; }
-        public DbSet<Car> Cars { get; set; }
-        public DbSet<Decision> Decisions { get; set; }
-        public BidDbContext(DbContextOptions<BidDbContext> options) : base(options) { }
+        public virtual DbSet<Bid> Bids { get; set; }
+        public virtual DbSet<Car> Cars { get; set; }
+        public virtual DbSet<Decision> Decisions { get; set; }
+        public  BidDbContext(DbContextOptions<BidDbContext> options) : base(options) { }
 
     }
 }

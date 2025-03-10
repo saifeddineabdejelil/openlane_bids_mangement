@@ -1,6 +1,8 @@
 using BidManagement.Context;
 using BidManagement.Models;
 using BidManagement.Repositories;
+using BidManagement.Services;
+using BidManagement.WinningBidStrategy;
 using Microsoft.EntityFrameworkCore;
 
 namespace BidManagementTests
@@ -9,23 +11,31 @@ namespace BidManagementTests
 
     public class BidRepositoryTest
     {
-        private BidDbContext _context;
+        private IBidService bidService;
         private IBidRepository _bidRepository;
+        private IDecisionRepository _decisionRepository;
+        private DbContextOptions<BidDbContext> _options;
+        private BidDbContext _context;
+
+
 
         [SetUp]
-        public void Setup()
+        public void SetUp()
         {
-            var options = new DbContextOptionsBuilder<BidDbContext>()
-                .UseInMemoryDatabase(databaseName: "TestDatabase")
-                .Options;
 
-            _context = new BidDbContext(options);
+            _options = new DbContextOptionsBuilder<BidDbContext>()
+            .UseInMemoryDatabase(databaseName: "BidDbTest")
+            .Options;
+
+            _context = new BidDbContext(_options);
+
             _bidRepository = new BidRepository(_context);
+            _decisionRepository = new DecisionRepository(_context);
+            bidService = new BidService(_bidRepository, _decisionRepository);
         }
         [TearDown]
         public void TearDown()
         {
-            _context.Database.EnsureDeleted();
             _context.Dispose();
         }
         [Test]
@@ -33,6 +43,7 @@ namespace BidManagementTests
         {
             var bid = new Bid
             {
+                Id = 2,
                 CarId = 33,
                 Amount = 5000,
                 ClientEmail = "test@test.com",
@@ -51,10 +62,11 @@ namespace BidManagementTests
         {
             var bid = new Bid
             {
-                CarId = 33,
+                Id= 1,
+                CarId = 3,
                 Amount = 5000,
                 ClientEmail = "test@test.com",
-                BidTime = DateTime.Now
+                BidTime = DateTime.Now.AddMinutes(1)
             };
 
             await _bidRepository.SaveBidAsync(bid);

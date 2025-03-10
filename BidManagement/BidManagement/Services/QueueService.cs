@@ -15,6 +15,12 @@ namespace BidManagement.Services
         private IChannel _channel;
         private readonly string _hostname = "localhost"; 
         private readonly string _queueName = "bidsQueue";
+
+        public QueueService(IConnection connection, IChannel channel)
+        {
+            _connection = connection;
+            _channel = channel;
+        }
         public async Task InitializeAsync()
         {
             var factory = new ConnectionFactory() { HostName = "localhost" };
@@ -25,15 +31,28 @@ namespace BidManagement.Services
 
             await Task.CompletedTask;
         }
-        public async void PublishBid(Bid bid)
+        public async Task PublishBid(Bid bid)
         {
             var message = System.Text.Json.JsonSerializer.Serialize(bid);
             var body = Encoding.UTF8.GetBytes(message);
+            string correlationId = Guid.NewGuid().ToString();
 
-            await _channel.BasicPublishAsync(exchange: string.Empty, routingKey: "", body: body);
+            var props = new BasicProperties
+            {
+                CorrelationId = correlationId,
+            };
+
+            await _channel.BasicPublishAsync(
+                exchange: string.Empty,
+                routingKey: "",
+                mandatory: false,
+                basicProperties: props,
+                body: new ReadOnlyMemory<byte>(body),
+                cancellationToken: CancellationToken.None
+            );
+
             Console.WriteLine($" [x] Sent {message}");
 
-            Console.WriteLine(" [x] Sent {0}", message);
         }
 
         public async Task<Bid> DequeueBidAsync(CancellationToken stoppingToken)

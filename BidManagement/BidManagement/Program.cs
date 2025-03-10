@@ -3,6 +3,7 @@ using BidManagement.Repositories;
 using BidManagement.Services;
 using BidManagement.WinningBidStrategy;
 using Microsoft.EntityFrameworkCore;
+using RabbitMQ.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,7 +18,18 @@ builder.Services.AddScoped<IDecisionRepository, DecisionRepository>();
 builder.Services.AddScoped<ICarRepository, CarRepository>();
 
 builder.Services.AddScoped<IBidService, BidService>();
-builder.Services.AddScoped<IQueueService, QueueService>();
+builder.Services.AddSingleton<IConnection>(serviceProvider =>
+{
+    var factory = new ConnectionFactory() { HostName = "localhost" };
+
+    Task<IConnection> connectionTask = factory.CreateConnectionAsync();
+    connectionTask.Wait(); 
+
+    return connectionTask.Result;
+});
+
+builder.Services.AddSingleton<IQueueService, QueueService>();
+builder.Services.AddHostedService<ProcessService>();
 
 
 builder.Services.AddTransient<IWinningBidStrategy, LoyalCustomerWinningBedStrategy>();

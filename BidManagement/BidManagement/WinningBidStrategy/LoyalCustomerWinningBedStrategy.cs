@@ -30,7 +30,7 @@ namespace BidManagement.WinningBidStrategy
 
             foreach (var clientEmail in clientBidsEmails)
             {
-                var winningBidCount = clientsDecisions.Count(decision => decision.Bid.ClientEmail == clientEmail && decision.IsWinning);
+                var winningBidCount = clientsDecisions.Where(cd=>cd  != null).Count(decision => decision.Bid.ClientEmail == clientEmail && decision.IsWinning);
 
                 if (winningBidCount > maxWinningBids)
                 {

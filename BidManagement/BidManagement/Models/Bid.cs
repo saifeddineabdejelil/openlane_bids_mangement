@@ -9,7 +9,6 @@
 
         public DateTime BidTime { get; set; } = DateTime.UtcNow;
 
-        public ICollection<Decision> Decisions { get; set; }
 
     }
 }
