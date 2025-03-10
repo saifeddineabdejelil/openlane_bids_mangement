@@ -1,6 +1,7 @@
 ﻿using BidManagement.Context;
 using BidManagement.Controllers;
 using BidManagement.Models;
+using BidManagement.Repositories;
 using BidManagement.WinningBidStrategy;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,18 +10,16 @@ namespace BidManagement.Services
     public class ProcessService :BackgroundService
     {
         private readonly IQueueService _queueService;
-        private readonly BidDbContext _context;
-        private readonly StrategySelector _strategySelector;
         private readonly IEmailSenderService _emailSenderService;
-        private readonly ILogger<BidFlowController> _logger;
+        private readonly ILogger<ProcessService> _logger;
+        private readonly IServiceProvider _serviceProvider;
 
         private string carBrand = "";
-        public ProcessService(IQueueService queueService, BidDbContext context,
-            StrategySelector strategySelector, IEmailSenderService emailSenderService, ILogger<BidFlowController> logger)
+        public ProcessService(IQueueService queueService, 
+            IServiceProvider serviceProvider,
+            IEmailSenderService emailSenderService, ILogger<ProcessService> logger)
         {
             _queueService = queueService;
-            _context = context;
-            _strategySelector = strategySelector;
             _emailSenderService = emailSenderService;
             _logger = logger;
         }
@@ -34,7 +33,8 @@ namespace BidManagement.Services
         
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-              while (!stoppingToken.IsCancellationRequested)
+
+                while (!stoppingToken.IsCancellationRequested)
                 {
                     var bids = await GetAllBidsAsync(stoppingToken);
 
@@ -69,18 +69,26 @@ namespace BidManagement.Services
 
         private Bid GetWinningBid(List<Bid> bids)
         {
-            if (bids == null || bids.Count == 0)
+
+                if (bids == null || bids.Count == 0)
             {
                 return null;  
             }
-            var carId = bids.First().CarId;
-             carBrand = _context.Cars.First(c => c.Id == carId).Model;
-            var strategy = _strategySelector.GetStrategyForCarBrand(carBrand);
+            using (var scope = _serviceProvider.CreateScope())
+            {
+                var carId = bids.First().CarId;
 
-            var winningBid = strategy.GetWinningBid(bids);
-            var decision = _context.Decisions.FirstOrDefault(b => b.BidId == winningBid.Id);
+                var _carRepository = scope.ServiceProvider.GetRequiredService<ICarRepository>();
+                carBrand = _carRepository.GetByCarIdAsync(carId).GetAwaiter().GetResult().Model;
+                var _strategySelector = scope.ServiceProvider.GetRequiredService<StrategySelector>();
+                var strategy = _strategySelector.GetStrategy(carBrand);
 
-            return winningBid;
+                var winningBid = strategy.GetWinningBid(bids);
+                return winningBid;
+            }
+            
+
+            
         }
 
         private async Task SaveDecision(Bid winningBid, string carBrand)
@@ -93,9 +101,12 @@ namespace BidManagement.Services
                     BidId = winningBid.Id,
                     IsWinning = true
                 };
+                using (var scope = _serviceProvider.CreateScope())
+                {
+                    var _decisionRepository = scope.ServiceProvider.GetRequiredService<IDecisionRepository>();
 
-                _context.Decisions.Add(decision);
-                await _context.SaveChangesAsync();
+                    await _decisionRepository.SaveDecisionAsync(decision);
+                }
             }
             catch (Exception ex)
             {

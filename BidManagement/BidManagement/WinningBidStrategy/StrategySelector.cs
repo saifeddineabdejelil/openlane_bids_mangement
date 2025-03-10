@@ -2,28 +2,20 @@
 {
     public class StrategySelector
     {
-        private readonly Dictionary<string, IWinningBidStrategy> _brandToStrategyMap;
-        public StrategySelector(
-        LoyalCustomerWinningBedStrategy loyalCustomerWinningBedStrategy,
-        FirstInWinningBidStrategy firstInWinningBidStrategy)
+        private readonly Dictionary<string, IWinningBidStrategy> _strategies;
+
+        public StrategySelector(Dictionary<string, IWinningBidStrategy> strategies)
         {
-            _brandToStrategyMap = new Dictionary<string, IWinningBidStrategy>
-        {
-            { "Mercedes", loyalCustomerWinningBedStrategy },
-            { "BMW", loyalCustomerWinningBedStrategy },
-            { "PEUGEOT", firstInWinningBidStrategy }
-        };
+            _strategies = strategies;
         }
 
-        public IWinningBidStrategy GetStrategyForCarBrand(string carBrand)
+        public IWinningBidStrategy GetStrategy(string carType)
         {
-            if (_brandToStrategyMap.TryGetValue(carBrand, out var strategy))
+            if (_strategies.TryGetValue(carType, out var strategy))
             {
                 return strategy;
             }
-
-            return new GenericWinningBidStrategy();
+            return _strategies["Generic"]; 
         }
-
     }
 }

@@ -21,7 +21,7 @@ namespace BidManagement.Controllers
             _queueService = queueService;
         }
 
-        [HttpGet(Name = "receive")]
+        [HttpPost(Name = "receive")]
         public async Task<IActionResult> ReceiveBid([FromBody] Bid bid)
         {
             string validationMessage;

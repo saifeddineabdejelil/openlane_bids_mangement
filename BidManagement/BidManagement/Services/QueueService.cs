@@ -15,6 +15,7 @@ namespace BidManagement.Services
         private IChannel _channel;
         private readonly string _hostname = "localhost"; 
         private readonly string _queueName = "bidsQueue";
+        private readonly ILogger<QueueService> _logger;
 
         public QueueService(IConnection connection, IChannel channel)
         {
@@ -55,6 +56,7 @@ namespace BidManagement.Services
 
         }
 
+       
         public async Task<Bid> DequeueBidAsync(CancellationToken stoppingToken)
         {
             var consumer = new AsyncEventingBasicConsumer(_channel);
@@ -62,21 +64,33 @@ namespace BidManagement.Services
 
             consumer.ReceivedAsync += async (model, ea) =>
             {
-                var body = ea.Body.ToArray();
-                var bidJson = Encoding.UTF8.GetString(body);
-                var bid = JsonConvert.DeserializeObject<Bid>(bidJson);
+                try
+                {
+                    var body = ea.Body.ToArray();
+                    var bidJson = Encoding.UTF8.GetString(body);
+                    var bid = JsonConvert.DeserializeObject<Bid>(bidJson);
 
-                tcs.SetResult(bid);
+                    tcs.SetResult(bid);
 
-                _channel.BasicAckAsync(ea.DeliveryTag, false);
+                    _channel.BasicAckAsync(ea.DeliveryTag, false);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error processing bid: {ex.Message}");
+                    _logger.LogError(ex, "error when processing bid message");
+
+                    await _channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: true);
+
+                    tcs.SetException(ex);
+                }
             };
 
-            await _channel.BasicConsumeAsync("bidsQueue", false, consumer);
+            await _channel.BasicConsumeAsync("bidsQueue", autoAck: false, consumer);
+
             using (stoppingToken.Register(() => tcs.TrySetCanceled()))
             {
                 return await tcs.Task;
             }
-
         }
 
     }

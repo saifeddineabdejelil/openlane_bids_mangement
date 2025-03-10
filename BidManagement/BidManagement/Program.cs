@@ -18,24 +18,45 @@ builder.Services.AddScoped<IDecisionRepository, DecisionRepository>();
 builder.Services.AddScoped<ICarRepository, CarRepository>();
 
 builder.Services.AddScoped<IBidService, BidService>();
-builder.Services.AddSingleton<IConnection>(serviceProvider =>
-{
-    var factory = new ConnectionFactory() { HostName = "localhost" };
-
-    Task<IConnection> connectionTask = factory.CreateConnectionAsync();
-    connectionTask.Wait(); 
-
-    return connectionTask.Result;
-});
-
+builder.Services.AddSingleton<IConnection>(serviceProvider => null!); 
+builder.Services.AddSingleton<IChannel>(serviceProvider => null!); 
 builder.Services.AddSingleton<IQueueService, QueueService>();
+
+
+
+builder.Services.AddHostedService<RabbitMqInitializationService>();
+
 builder.Services.AddHostedService<ProcessService>();
 
 
-builder.Services.AddTransient<IWinningBidStrategy, LoyalCustomerWinningBedStrategy>();
-builder.Services.AddTransient<IWinningBidStrategy, GenericWinningBidStrategy>();
-builder.Services.AddTransient<IWinningBidStrategy, FirstInWinningBidStrategy>();
-builder.Services.AddSingleton<StrategySelector>();
+// Register Strategy Implementations
+builder.Services.AddTransient<LoyalCustomerWinningBedStrategy>();
+builder.Services.AddTransient<FirstInWinningBidStrategy>();
+builder.Services.AddTransient<GenericWinningBidStrategy>();
+
+// Register IWinningBidStrategy implementations with concrete strategies
+builder.Services.AddTransient<IWinningBidStrategy>(provider => provider.GetRequiredService<LoyalCustomerWinningBedStrategy>());
+builder.Services.AddTransient<IWinningBidStrategy>(provider => provider.GetRequiredService<FirstInWinningBidStrategy>());
+builder.Services.AddTransient<IWinningBidStrategy>(provider => provider.GetRequiredService<GenericWinningBidStrategy>());
+
+// Register StrategySelector with concrete strategies
+builder.Services.AddScoped<StrategySelector>(serviceProvider =>
+{
+    var loyalCustomerStrategy = serviceProvider.GetRequiredService<LoyalCustomerWinningBedStrategy>();
+    var firstInStrategy = serviceProvider.GetRequiredService<FirstInWinningBidStrategy>();
+    var genericStrategy = serviceProvider.GetRequiredService<GenericWinningBidStrategy>();
+
+    var strategies = new Dictionary<string, IWinningBidStrategy>
+    {
+        { "BMW", loyalCustomerStrategy },
+        { "Mercedes", loyalCustomerStrategy },
+        { "Peugeot", firstInStrategy },
+        { "Generic", genericStrategy }
+    };
+
+    return new StrategySelector(strategies);
+});
+
 builder.Services.AddSingleton<IEmailSenderService, EmailSenderService>();
 
 builder.Services.AddControllers();
