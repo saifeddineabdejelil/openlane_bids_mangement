@@ -36,12 +36,12 @@ namespace BidManagement.Controllers
                 _logger.LogInformation($"Bid  ( {bid.Id} ) saved successfully.");
 
                 _queueService.PublishBid(bid);
+                _logger.LogInformation($"Bid  ( {bid.Id} ) pushed in queue successfully.");
 
                 return Ok("Success reception");
             }
             catch (Exception ex)
             {
-                //will be updated in next commits
                 _logger.LogError(ex, "error in bid recpetion");
                 return BadRequest("error");
             }

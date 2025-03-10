@@ -1,5 +1,6 @@
 ﻿using BidManagement.Models;
 using BidManagement.Repositories;
+using System.Security.Cryptography;
 
 namespace BidManagement.Services
 {
@@ -14,6 +15,12 @@ namespace BidManagement.Services
             _bidRepository = bidRepository;
             _decisionRepository = decisionRepository;
         }
+
+        public async Task<Decision> GetDecisionByClient(string clientEmail)
+        {
+          return await _decisionRepository.GetByClientEmailAsync(clientEmail);
+        }
+
         public async Task SaveBidAsync(Bid bid)
         {
             await _bidRepository.SaveBidAsync(bid);

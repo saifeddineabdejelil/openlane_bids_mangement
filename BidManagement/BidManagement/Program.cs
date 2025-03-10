@@ -1,6 +1,7 @@
 using BidManagement.Context;
 using BidManagement.Repositories;
 using BidManagement.Services;
+using BidManagement.WinningBidStrategy;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,8 +19,14 @@ builder.Services.AddScoped<ICarRepository, CarRepository>();
 builder.Services.AddScoped<IBidService, BidService>();
 builder.Services.AddScoped<IQueueService, QueueService>();
 
+
+builder.Services.AddTransient<IWinningBidStrategy, LoyalCustomerWinningBedStrategy>();
+builder.Services.AddTransient<IWinningBidStrategy, GenericWinningBidStrategy>();
+builder.Services.AddTransient<IWinningBidStrategy, FirstInWinningBidStrategy>();
+builder.Services.AddSingleton<StrategySelector>();
+builder.Services.AddSingleton<IEmailSenderService, EmailSenderService>();
+
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
