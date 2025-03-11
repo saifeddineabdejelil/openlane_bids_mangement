@@ -56,13 +56,13 @@ namespace BidManagementTests
                 ))
                 .Returns(ValueTask.CompletedTask);
 
-            _mqService = new QueueService(_mockConnection.Object, _mockChannel.Object);
+            _mqService = new QueueService(_mockConnection.Object, _mockChannel.Object, null);
             await _mqService.PublishBid(bid);
 
 
             _mockChannel.Verify(c => c.BasicPublishAsync(
                 string.Empty,
-                 "",
+                 "bidsQueue",
                   false,
                   It.Is<BasicProperties>(props => props.CorrelationId != null), 
                  It.Is<ReadOnlyMemory<byte>>(b => b.ToArray().SequenceEqual(body)),
@@ -115,7 +115,7 @@ namespace BidManagementTests
                         }
                     });
 
-            _mqService = new QueueService(_mockConnection.Object, _mockChannel.Object);
+            _mqService = new QueueService(_mockConnection.Object, _mockChannel.Object, null);
             var result = await _mqService.DequeueBidAsync(CancellationToken.None);
 
             Assert.AreEqual(bid.Id, result.Id);
@@ -134,7 +134,7 @@ namespace BidManagementTests
 
             cts.Cancel();
             
-            _mqService = new QueueService(_mockConnection.Object, _mockChannel.Object);
+            _mqService = new QueueService(_mockConnection.Object, _mockChannel.Object, null);
             Assert.ThrowsAsync<TaskCanceledException>(() => _mqService.DequeueBidAsync(cts.Token));
         }
 

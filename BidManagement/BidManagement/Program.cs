@@ -4,8 +4,14 @@ using BidManagement.Services;
 using BidManagement.WinningBidStrategy;
 using Microsoft.EntityFrameworkCore;
 using RabbitMQ.Client;
+using Serilog;
+
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.File("D:\\Log/log.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog();
 
 // Add services to the container.
 

@@ -12,26 +12,30 @@ using RabbitMQ.Client.Exceptions;
 using System.Security.Cryptography;
 namespace BidManagement.Services
 {
-    public class QueueService : IQueueService
+    public class PubliQueueConsumerService : BackgroundService
     {
         private  IConnection _connection;
         private IChannel _channel;
         private readonly string _hostname = "localhost"; 
-        private readonly string _queueName = "bidsQueue";
+        private readonly string _queueName = "publicQueue";
         private readonly ILogger<QueueService> _logger;
         private readonly AsyncRetryPolicy _retryPolicy;
-
-        public QueueService(IConnection connection, IChannel channel, ILogger<QueueService> logger)
+        private readonly IBidService _bidService;
+        private readonly IQueueService _queueService;
+        public PubliQueueConsumerService(IConnection connection, IChannel channel,
+            ILogger<QueueService> logger, IBidService bidService, IQueueService queueService)
         {
             _connection = connection;
             _channel = channel;
             _logger = logger;
+            _bidService = bidService;
+            _queueService = queueService;
             _retryPolicy = Policy
            .Handle<BrokerUnreachableException>()
            .Or<OperationInterruptedException>()
            .WaitAndRetryAsync(
                retryCount: 3,
-               sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+               sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), 
                onRetry: (exception, retryCount, context) =>
                {
                    Console.WriteLine($"Retry Failed");
@@ -48,41 +52,26 @@ namespace BidManagement.Services
 
             await Task.CompletedTask;
         }
-        public async Task PublishBid(Bid bid)
+
+        // listner for public in queue (azzure rabbitmq for example ) to consume bids pushed by clients
+        // to be updated
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var message = System.Text.Json.JsonSerializer.Serialize(bid);
-            var body = Encoding.UTF8.GetBytes(message);
-            string correlationId = Guid.NewGuid().ToString();
 
-            var props = new BasicProperties
+            while (!stoppingToken.IsCancellationRequested)
             {
-                CorrelationId = correlationId,
-            };
+                var bid = await DequeueBidAsync(stoppingToken);
+                await _bidService.SaveBidAsync(bid);
 
-            try
-            {
-                await _retryPolicy.ExecuteAsync(async () =>
-                {
-                    await _channel.BasicPublishAsync(
-                        exchange: string.Empty,
-                        routingKey: _queueName,
-                        mandatory: false,
-                        basicProperties: props,
-                        body: new ReadOnlyMemory<byte>(body),
-                        cancellationToken: CancellationToken.None
-                    );
+                _logger.LogInformation($"Bid  ( {bid.Id} ) saved successfully.");
 
-                    Console.WriteLine($"pushed {bid.ClientEmail} ");
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Failed to publish bid after retries: {ex.Message}");
+                await _queueService.PublishBid(bid);
+
+                _logger.LogInformation($"Bid  ( {bid.Id} ) pushed in queue successfully.");
+
             }
 
         }
-
-
         public async Task<Bid> DequeueBidAsync(CancellationToken stoppingToken)
         {
             var consumer = new AsyncEventingBasicConsumer(_channel);

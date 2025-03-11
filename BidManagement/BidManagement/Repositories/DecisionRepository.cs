@@ -37,5 +37,10 @@ namespace BidManagement.Repositories
             _context.Decisions.Add(decision);
             await _context.SaveChangesAsync();
         }
+        public async Task SaveUpdatedDecisionAsync(Decision decision)
+        {
+            _context.Decisions.FirstOrDefault(d=> d.Id == decision.Id);
+            await _context.SaveChangesAsync();
+        }
     }
 }

@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BidManagement.Services
 {
-    public class ProcessService :BackgroundService
+    public class ProcessService : BackgroundService
     {
         private readonly IQueueService _queueService;
         private readonly IEmailSenderService _emailSenderService;
@@ -15,13 +15,14 @@ namespace BidManagement.Services
         private readonly IServiceProvider _serviceProvider;
 
         private string carBrand = "";
-        public ProcessService(IQueueService queueService, 
+        public ProcessService(IQueueService queueService,
             IServiceProvider serviceProvider,
             IEmailSenderService emailSenderService, ILogger<ProcessService> logger)
         {
             _queueService = queueService;
             _emailSenderService = emailSenderService;
             _logger = logger;
+            _serviceProvider = serviceProvider;
         }
 
         public override async Task StartAsync(CancellationToken cancellationToken)
@@ -30,37 +31,49 @@ namespace BidManagement.Services
 
             await base.StartAsync(cancellationToken);
         }
-        
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
 
-                while (!stoppingToken.IsCancellationRequested)
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                var bids = await GetAllBidsAsync(stoppingToken);
+                if (bids.Count == 0)
                 {
-                    var bids = await GetAllBidsAsync(stoppingToken);
-
-
-                    var winningBid = GetWinningBid(bids);
-
-                    await SaveDecision(winningBid, carBrand);
-
-                    await SendEmailNotificationAsync(winningBid, carBrand);
+                    await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                    continue;
                 }
+
+                Console.WriteLine($"Finalize dequeue");
+
+                var winningBid = GetWinningBid(bids);
+                Console.WriteLine($"{winningBid.Amount}");
+                await SaveDecision(winningBid, carBrand);
+
+                await SendEmailNotificationAsync(winningBid, carBrand);
+            }
 
         }
         private async Task<List<Bid>> GetAllBidsAsync(CancellationToken stoppingToken)
         {
             var bids = new List<Bid>();
 
-            while (!stoppingToken.IsCancellationRequested)
+            using (var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
             {
-                var bid = await _queueService.DequeueBidAsync(stoppingToken);
-                if (bid != null)
+                var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, timeoutCts.Token);
+
+                while (!linkedCts.Token.IsCancellationRequested)
                 {
-                    bids.Add(bid);
-                }
-                else
-                {
-                    break;
+
+                    var bid = await _queueService.DequeueBidAsync(stoppingToken);
+                    if (bid != null)
+                    {
+                        bids.Add(bid);
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
             }
 
@@ -70,9 +83,9 @@ namespace BidManagement.Services
         private Bid GetWinningBid(List<Bid> bids)
         {
 
-                if (bids == null || bids.Count == 0)
+            if (bids == null || bids.Count == 0)
             {
-                return null;  
+                return null;
             }
             using (var scope = _serviceProvider.CreateScope())
             {
@@ -86,9 +99,9 @@ namespace BidManagement.Services
                 var winningBid = strategy.GetWinningBid(bids);
                 return winningBid;
             }
-            
 
-            
+
+
         }
 
         private async Task SaveDecision(Bid winningBid, string carBrand)
@@ -119,18 +132,18 @@ namespace BidManagement.Services
         {
             try
             {
-            var clientEmail = winningBid.ClientEmail;
-            var subject = "Congratulations! Your bid was successful";
-            var body = $"Dear client,<br>" +
-                       $"<b>Congratulations!</b><br>" +
-                       $"You have won the bid for the car {carbrand} with a bid of {winningBid.Amount:C}.<br>" +
-                       $"Thank you for bidding with us!<br><br>" +
-                       $"We will contact you for the rest of procedure<br><br>" +
-                       $"Best regards,<br>Openlane";
+                var clientEmail = winningBid.ClientEmail;
+                var subject = "Congratulations! Your bid was successful";
+                var body = $"Dear client,<br>" +
+                           $"<b>Congratulations!</b><br>" +
+                           $"You have won the bid for the car {carbrand} with a bid of {winningBid.Amount:C}.<br>" +
+                           $"Thank you for bidding with us!<br><br>" +
+                           $"We will contact you for the rest of procedure<br><br>" +
+                           $"Best regards,<br>Openlane";
 
-            await _emailSenderService.SendBidWinningEmailAsync(clientEmail, subject, body);
+                await _emailSenderService.SendBidWinningEmailAsync(clientEmail, subject, body);
             }
-            catch (Exception ex )
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "error sending email");
 

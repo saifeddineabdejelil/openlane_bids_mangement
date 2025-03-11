@@ -7,5 +7,6 @@ namespace BidManagement.Services
         Task PublishBid(Bid bid);
         Task InitializeAsync();
         Task<Bid> DequeueBidAsync(CancellationToken stoppingToken);
+        //Task<uint> GetQueueLengthAsync();
     }
 }
